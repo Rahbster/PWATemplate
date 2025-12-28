@@ -1,0 +1,150 @@
+#view-peer {
+    padding: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.peer-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Role Selector Styles */
+.role-selector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    justify-content: center;
+}
+
+.role-btn {
+    padding: 0.5rem 2rem;
+    border: 1px solid #007bff;
+    background: white;
+    color: #007bff;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.role-btn:hover {
+    background: #e9ecef;
+}
+
+.role-btn.selected {
+    background: #007bff;
+    color: white;
+}
+
+.role-panel {
+    animation: fadeIn 0.3s ease-in;
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Existing Styles */
+.join-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    justify-content: center;
+}
+
+#join-code {
+    padding: 0.75rem;
+    font-size: 1.2rem;
+    width: 10rem;
+    text-align: center;
+    letter-spacing: 2px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.code-display {
+    font-size: 2.5rem;
+    font-weight: bold;
+    letter-spacing: 8px;
+    background: #fff;
+    padding: 1rem;
+    text-align: center;
+    border: 2px dashed #007bff;
+    border-radius: 8px;
+    margin: 1rem 0;
+    user-select: all;
+    color: #333;
+}
+
+#messages {
+    height: 250px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #fff;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.message {
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.message.local {
+    background: #007bff;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.message.remote {
+    background: #e9ecef;
+    color: #333;
+    align-self: flex-start;
+    border-bottom-left-radius: 0.25rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#peer-chat input {
+    width: calc(100% - 80px);
+    padding: 0.5rem;
+    margin-right: 0.5rem;
+}
+
+#peer-chat button {
+    width: 70px;
+}
+
+.peer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.peer-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
