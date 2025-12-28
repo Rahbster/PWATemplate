@@ -59,6 +59,12 @@ function getPeers() {
     return JSON.parse(localStorage.getItem('pwa_peers') || '{}');
 }
 
+function removePeer(guid) {
+    let peers = getPeers();
+    delete peers[guid];
+    localStorage.setItem('pwa_peers', JSON.stringify(peers));
+}
+
 // Export for use in peer.js
 export { getIdentity, savePeer };
 
@@ -184,11 +190,11 @@ function renderPeerList(role) {
             : `<button class="join-user-btn" data-guid="${guid}">Join</button>`;
 
         item.innerHTML = `
-            <span>${peer.name}</span>
-            <div class="peer-item-buttons">
+            <span class="peer-name">${peer.name}</span>
+            <div class="peer-item-actions">
                 ${buttonHtml}
+                <button class="remove-peer-btn" data-guid="${guid}" title="Remove Peer">&times;</button>
             </div>
-            <button class="remove-peer-btn" data-guid="${guid}">&times;</button>
         `;
         peerListContainer.appendChild(item);
     });

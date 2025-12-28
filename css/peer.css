@@ -1,3 +1,20 @@
+.sdp-box {
+    width: 100%;
+    padding: 0.5rem;
+    font-family: monospace;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    background: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+.step-box {
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    background: var(--surface-color);
+}
 #view-peer {
     padding: 1rem;
     max-width: 600px;
@@ -8,7 +25,7 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    background: #f8f9fa;
+    background: var(--surface-color);
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -24,9 +41,9 @@
 
 .role-btn {
     padding: 0.5rem 2rem;
-    border: 1px solid #007bff;
-    background: white;
-    color: #007bff;
+    border: 1px solid var(--primary-color);
+    background: var(--surface-color);
+    color: var(--primary-color);
     cursor: pointer;
     border-radius: 4px;
     font-weight: bold;
@@ -34,11 +51,11 @@
 }
 
 .role-btn:hover {
-    background: #e9ecef;
+    background: var(--bg-color);
 }
 
 .role-btn.selected {
-    background: #007bff;
+    background: var(--primary-color);
     color: white;
 }
 
@@ -66,31 +83,33 @@
     width: 10rem;
     text-align: center;
     letter-spacing: 2px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
+    background: var(--bg-color);
+    color: var(--text-color);
 }
 
 .code-display {
     font-size: 2.5rem;
     font-weight: bold;
     letter-spacing: 8px;
-    background: #fff;
+    background: var(--bg-color);
     padding: 1rem;
     text-align: center;
-    border: 2px dashed #007bff;
+    border: 2px dashed var(--primary-color);
     border-radius: 8px;
     margin: 1rem 0;
     user-select: all;
-    color: #333;
+    color: var(--text-color);
 }
 
 #messages {
     height: 250px;
     overflow-y: auto;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     padding: 1rem;
     margin-bottom: 1rem;
-    background: #fff;
+    background: var(--bg-color);
     border-radius: 4px;
     display: flex;
     flex-direction: column;
@@ -105,17 +124,18 @@
 }
 
 .message.local {
-    background: #007bff;
+    background: var(--primary-color);
     color: white;
     align-self: flex-end;
     border-bottom-right-radius: 0.25rem;
 }
 
 .message.remote {
-    background: #e9ecef;
-    color: #333;
+    background: var(--surface-color);
+    color: var(--text-color);
     align-self: flex-start;
     border-bottom-left-radius: 0.25rem;
+    border: 1px solid var(--border-color);
 }
 
 .hidden {
@@ -143,26 +163,59 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s;
 }
 
-.peer-item-buttons {
-    display: flex;
-    gap: 0.5rem;
+.peer-item:hover {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.08);
 }
-.peer-item-buttons button {
-    padding: 0.2rem 0.5rem;
+
+.peer-name {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.peer-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.peer-item-actions button {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.host-user-btn, .join-user-btn {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.9rem;
 }
 
 .remove-peer-btn {
-    background-color: #dc3545; /* A shade of red */
-    color: white;
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    opacity: 0.5;
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
 }
 
-.peer-item-buttons button[disabled] span {
+.remove-peer-btn:hover {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.peer-item-actions button[disabled] span {
     display: inline-block;
     width: 1em;
     height: 1em;
