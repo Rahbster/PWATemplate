@@ -69,6 +69,7 @@ function removePeer(guid) {
 export { getIdentity, savePeer };
 
 const peerManager = new PeerManager();
+let currentRemoteName = 'Peer';
 
 // --- PeerJS Signaling Helper ---
 class SignalingChannel {
@@ -161,12 +162,23 @@ async function copyToClipboard(id) {
     }
 }
 
-function addMessage(text, type) {
+function addMessage(text, type, senderName) {
     const container = document.getElementById('messages');
-    const div = document.createElement('div');
-    div.className = `message ${type}`;
-    div.textContent = text;
-    container.appendChild(div);
+    
+    const wrapper = document.createElement('div');
+    wrapper.className = `message-wrapper ${type}`;
+
+    const nameLabel = document.createElement('div');
+    nameLabel.className = 'message-name';
+    nameLabel.textContent = senderName;
+
+    const bubble = document.createElement('div');
+    bubble.className = `message ${type}`;
+    bubble.textContent = text;
+
+    wrapper.appendChild(nameLabel);
+    wrapper.appendChild(bubble);
+    container.appendChild(wrapper);
     container.scrollTop = container.scrollHeight;
 }
 
@@ -257,8 +269,9 @@ async function startJoiningProcess(hostId) {
 peerManager.onMessage((data) => {
     // Handle incoming data (chat or game state)
     if (data.type === 'chat') {
-        addMessage(data.content, 'remote');
+        addMessage(data.content, 'remote', currentRemoteName);
     } else if (data.type === 'identity') {
+        currentRemoteName = data.name;
         savePeer(data.guid, data.name);
         console.log('Received data:', data);
     }
@@ -266,9 +279,11 @@ peerManager.onMessage((data) => {
 
 peerManager.onStatusChange((status) => {
     console.log('Connection status:', status);
+    const btnOpenChat = document.getElementById('btn-open-chat');
     if (status === 'connected') {
         hide('peer-setup');
-        show('peer-chat');
+        show('connected-status');
+        if (btnOpenChat) btnOpenChat.disabled = false;
     }
 });
 
@@ -288,6 +303,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeSidenavBtn) closeSidenavBtn.addEventListener('click', closeNav);
     if (overlay) overlay.addEventListener('click', closeNav);
 
+    // Modal Logic
+    const peerModal = document.getElementById('peer-modal');
+    const btnOpenPeerModal = document.getElementById('btn-open-peer-modal');
+    const closePeerModalBtn = document.getElementById('close-peer-modal');
+
+    if (btnOpenPeerModal) {
+        btnOpenPeerModal.addEventListener('click', () => {
+            closeNav();
+            peerModal.classList.remove('hidden');
+        });
+    }
+
+    if (closePeerModalBtn) {
+        closePeerModalBtn.addEventListener('click', () => {
+            peerModal.classList.add('hidden');
+        });
+    }
+
+    // Chat Modal Logic
+    const chatModal = document.getElementById('chat-modal');
+    const btnOpenChat = document.getElementById('btn-open-chat');
+    const closeChatModalBtn = document.getElementById('close-chat-modal');
+
+    if (btnOpenChat) {
+        btnOpenChat.addEventListener('click', () => {
+            closeNav();
+            chatModal.classList.remove('hidden');
+        });
+    }
+
+    if (closeChatModalBtn) {
+        closeChatModalBtn.addEventListener('click', () => {
+            chatModal.classList.add('hidden');
+        });
+    }
 
     // Settings View
     const settingsNameInput = document.getElementById('settings-name');
@@ -344,6 +394,12 @@ document.addEventListener('DOMContentLoaded', () => {
         btnHostSession.addEventListener('click', () => startHostingProcess(null));
     }
 
+    // Disconnect Button
+    const btnDisconnect = document.getElementById('btn-disconnect');
+    if (btnDisconnect) {
+        btnDisconnect.addEventListener('click', () => location.reload());
+    }
+
     // --- JOINER FLOW ---
     const joinerInput = document.getElementById('joiner-id-input');
 
@@ -390,7 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const text = inputMsg.value;
             if (!text) return;
             peerManager.send({ type: 'chat', content: text });
-            addMessage(text, 'local');
+            addMessage(text, 'local', getIdentity().name);
             inputMsg.value = '';
         });
     }

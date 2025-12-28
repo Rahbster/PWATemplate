@@ -24,6 +24,11 @@
             <a href="javascript:void(0)" class="closebtn" id="close-sidenav-btn">&times;</a>
             <h2>Settings</h2>
             <div class="sidenav-item">
+                <button id="btn-open-peer-modal" style="width: 100%;">Connect to Peer</button>
+                <button id="btn-open-chat" style="width: 100%; margin-top: 0.5rem;" disabled>Quick Chat</button>
+            </div>
+            <hr style="margin: 0.5rem 2rem; border: 0; border-top: 1px solid var(--border-color);">
+            <div class="sidenav-item">
                 <label for="settings-name">Display Name:</label>
                 <input type="text" id="settings-name" placeholder="Enter your name">
             </div>
@@ -36,13 +41,22 @@
 
         <!-- Main Content Area -->
         <main id="main-content">
+            <section id="view-home" class="view active">
+                <h2>Welcome</h2>
+                <p>Use the menu to connect to a peer or change settings.</p>
+            </section>
+
             <section id="view-settings" class="view hidden">
                 <h2>Settings</h2>
                 <p>Application configuration.</p>
             </section>
+        </main>
 
-            <section id="view-peer" class="view active">
-                <h2>Peer Connection (Automated Signal)</h2>
+        <!-- Peer Connection Modal -->
+        <div id="peer-modal" class="modal hidden">
+            <div class="modal-content">
+                <span id="close-peer-modal" class="close-modal">&times;</span>
+                <h2>Peer Connection</h2>
                 <div class="peer-controls">
                     
                     <!-- Role Selector -->
@@ -76,17 +90,31 @@
                             <!-- This will be populated by app.js -->
                         </div>
                     </div>
+                    
+                    <!-- Connected Status -->
+                    <div id="connected-status" class="hidden" style="text-align: center; padding: 1rem;">
+                        <h3>✅ Connected</h3>
+                        <p>You can now use the Quick Chat.</p>
+                        <button id="btn-disconnect" style="background-color: #dc3545; margin-top: 1rem;">Disconnect</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                    <!-- Chat Area -->
-                    <div id="peer-chat" class="hidden">
-                        <h3>Connected!</h3>
-                        <div id="messages"></div>
+        <!-- Chat Modal -->
+        <div id="chat-modal" class="modal hidden">
+            <div class="modal-content">
+                <span id="close-chat-modal" class="close-modal">&times;</span>
+                <h2>Quick Chat</h2>
+                <div id="peer-chat">
+                    <div id="messages"></div>
+                    <div class="chat-input-area">
                         <input type="text" id="msg-input" placeholder="Type a message...">
                         <button id="btn-send">Send</button>
                     </div>
                 </div>
-            </section>
-        </main>
+            </div>
+        </div>
     </div>
     <script type="module" src="js/app.js"></script>
     <script src="./js/peerjs.min.js"></script>

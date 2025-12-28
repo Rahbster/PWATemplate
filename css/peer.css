@@ -25,10 +25,6 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    background: var(--surface-color);
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 /* Role Selector Styles */
@@ -116,24 +112,46 @@
     gap: 0.5rem;
 }
 
+.message-wrapper {
+    display: flex;
+    flex-direction: column;
+    max-width: 80%;
+}
+
+.message-wrapper.local {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.message-wrapper.remote {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+.message-name {
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+    color: var(--text-color);
+    opacity: 0.7;
+    padding: 0 0.5rem;
+}
+
 .message {
     padding: 0.5rem 1rem;
     border-radius: 1rem;
-    max-width: 80%;
     word-wrap: break-word;
+    width: fit-content;
 }
 
 .message.local {
     background: var(--primary-color);
     color: white;
-    align-self: flex-end;
     border-bottom-right-radius: 0.25rem;
 }
 
 .message.remote {
     background: var(--surface-color);
     color: var(--text-color);
-    align-self: flex-start;
     border-bottom-left-radius: 0.25rem;
     border: 1px solid var(--border-color);
 }
@@ -142,14 +160,14 @@
     display: none !important;
 }
 
-#peer-chat input {
-    width: calc(100% - 80px);
-    padding: 0.5rem;
-    margin-right: 0.5rem;
+.chat-input-area {
+    display: flex;
+    gap: 0.5rem;
 }
 
-#peer-chat button {
-    width: 70px;
+#peer-chat input {
+    flex-grow: 1;
+    padding: 0.5rem;
 }
 
 .peer-list {
