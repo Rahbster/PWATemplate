@@ -11,86 +11,91 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/peer.css">
     <style>
-        .settings-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            max-width: 600px;
-            margin: 0 auto;
+        .sdp-box {
+            width: 100%;
+            padding: 0.5rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
         }
-        .settings-form input {
-            padding: 0.8rem;
-            border: 1px solid #ccc;
+        .step-box {
+            border: 1px solid #ddd;
+            padding: 1rem;
+            margin-bottom: 1rem;
             border-radius: 4px;
-            font-size: 1rem;
+            background: #fff;
         }
     </style>
 </head>
 <body>
     <div id="app">
         <!-- Top Navigation / Header -->
-        <header class="app-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <header class="app-header">
+            <button id="hamburger-btn" aria-label="Open Menu">☰</button>
             <h1>PWA Template</h1>
-            <button id="theme-toggle" aria-label="Toggle Theme">🌓</button>
         </header>
+
+        <!-- Side Navigation Panel -->
+        <div id="sidenav" class="sidenav">
+            <a href="javascript:void(0)" class="closebtn" id="close-sidenav-btn">&times;</a>
+            <h2>Settings</h2>
+            <div class="sidenav-item">
+                <label for="settings-name">Display Name:</label>
+                <input type="text" id="settings-name" placeholder="Enter your name">
+            </div>
+            <div class="sidenav-item">
+                <span>Theme</span>
+                <button id="theme-toggle" aria-label="Toggle Theme">🌓</button>
+            </div>
+        </div>
+        <div id="overlay" class="overlay"></div>
 
         <!-- Main Content Area -->
         <main id="main-content">
-            <!-- Views will be injected here or toggled via visibility -->
             <section id="view-settings" class="view hidden">
                 <h2>Settings</h2>
                 <p>Application configuration.</p>
-                <div class="settings-form">
-                    <label for="settings-name">Display Name:</label>
-                    <input type="text" id="settings-name" placeholder="Enter your name">
-                </div>
             </section>
 
             <section id="view-peer" class="view active">
-                <h2>Peer Connection</h2>
+                <h2>Peer Connection (Automated Signal)</h2>
                 <div class="peer-controls">
                     
-                    <!-- Role Selector and Setup -->
+                    <!-- Role Selector -->
                     <div id="peer-setup">
-                        <h3>Select Role</h3>
                         <div class="role-selector">
                             <button id="select-host" class="role-btn">Host</button>
                             <button id="select-joiner" class="role-btn">Joiner</button>
                         </div>
 
+                        <!-- HOST PANEL -->
                         <div id="panel-host" class="role-panel hidden">
-                            <p>Start a session to generate a code.</p>
-                            <div style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1rem;">
-                                <button id="btn-host">Generate ID</button>
-                                <button id="btn-host-myid">Host on My ID</button>
+                            <div class="step-box">
+                                <h4>Host Session</h4>
+                                <button id="btn-host-session">Start Hosting</button>
+                                <p>Share this ID with the Joiner:</p>
+                                <div id="host-id-display" class="code-display">------</div>
                             </div>
-                            <h4>Recent Peers (Call)</h4>
-                            <div id="host-peer-list" class="peer-list"></div>
                         </div>
 
+                        <!-- JOINER PANEL -->
                         <div id="panel-join" class="role-panel hidden">
-                            <p>Enter the code from the host.</p>
-                            <div class="join-container">
-                                <input type="text" id="join-code" placeholder="Peer ID or GUID">
-                                <button id="btn-join">Join Session</button>
+                            <div class="step-box">
+                                <h4>Join Session</h4>
+                                <p>Enter 6-Digit Host ID:</p>
+                                <input type="text" id="joiner-id-input" class="sdp-box" placeholder="Enter Host ID" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 4px;">
                             </div>
-                            <h4>Recent Peers (Join)</h4>
-                            <div id="join-peer-list" class="peer-list"></div>
+                        </div>
+
+                        <!-- Recent Peers List -->
+                        <div id="recent-peers-list" class="step-box hidden">
+                            <!-- This will be populated by app.js -->
                         </div>
                     </div>
 
-                    <!-- Connection Status & Chat (Shared) -->
-                    <div id="peer-status" class="hidden">
-                        <h3>Connection Status</h3>
-                        <p id="connection-state">Disconnected</p>
-                        <div id="host-info" class="hidden">
-                            <p>Share this code:</p>
-                            <div class="code-display" id="display-code">------</div>
-                        </div>
-                    </div>
-
+                    <!-- Chat Area -->
                     <div id="peer-chat" class="hidden">
-                        <h3>Messages</h3>
+                        <h3>Connected!</h3>
                         <div id="messages"></div>
                         <input type="text" id="msg-input" placeholder="Type a message...">
                         <button id="btn-send">Send</button>
@@ -98,17 +103,8 @@
                 </div>
             </section>
         </main>
-
-        <!-- Bottom Navigation (Mobile Friendly) -->
-        <nav class="bottom-nav">
-            <button class="nav-btn active" data-target="view-peer">Peer</button>
-            <button class="nav-btn" data-target="view-settings">Settings</button>
-        </nav>
     </div>
-
-    <!-- Application Logic -->
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script type="module" src="js/app.js"></script>
-    <script type="module" src="js/peer.js"></script>
+    <script src="./js/peerjs.min.js"></script>
 </body>
 </html>

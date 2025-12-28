@@ -148,3 +148,30 @@
     border: 1px solid #ddd;
     border-radius: 4px;
 }
+
+.peer-item-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+.peer-item-buttons button {
+    padding: 0.2rem 0.5rem;
+}
+
+.remove-peer-btn {
+    background-color: #dc3545; /* A shade of red */
+    color: white;
+}
+
+.peer-item-buttons button[disabled] span {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border: 2px solid currentColor;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

@@ -6,11 +6,13 @@ const ASSETS_TO_CACHE = [
     './css/peer.css',
     './js/app.js',
     './js/peer.js',
+    './js/peerjs.min.js',
     './manifest.json'
 ];
 
 // Install Event
 self.addEventListener('install', (event) => {
+    self.skipWaiting(); // Force the waiting service worker to become the active service worker
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -23,6 +25,7 @@ self.addEventListener('install', (event) => {
 // Activate Event
 self.addEventListener('activate', (event) => {
     const cacheWhitelist = [CACHE_NAME];
+    event.waitUntil(self.clients.claim()); // Take control of all clients immediately
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
