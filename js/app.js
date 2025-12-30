@@ -1,4 +1,7 @@
 import { PeerManager } from './peer.js';
+import { SignalingChannel } from './SignalingChannel.js';
+import { ChatManager } from './ChatManager.js';
+import { ToastManager } from './ToastManager.js';
 
 // --- Service Worker Registration ---
 if ('serviceWorker' in navigator) {
@@ -52,7 +55,9 @@ function savePeer(guid, name) {
     let peers = JSON.parse(localStorage.getItem('pwa_peers') || '{}');
     peers[guid] = { name, lastSeen: Date.now() };
     localStorage.setItem('pwa_peers', JSON.stringify(peers));
-    loadPeerList(); // Refresh the UI
+    if (connectionRole) {
+        renderPeerList(connectionRole);
+    }
 }
 
 function getPeers() {
@@ -69,77 +74,18 @@ function removePeer(guid) {
 export { getIdentity, savePeer };
 
 const peerManager = new PeerManager();
+const toastManager = new ToastManager();
+const chatManager = new ChatManager(peerManager, getIdentity);
 let currentRemoteName = 'Peer';
 
-// --- PeerJS Signaling Helper ---
-class SignalingChannel {
-    constructor() {
-        this.peer = null;
-        this.conn = null;
-        this.onConnected = null;
-        this.onMessage = null;
-    }
-
-    async _createPeer(id) {
-        if (!window.Peer) {
-            alert("PeerJS library not found. Please add the script tag to index.html");
-            throw new Error("PeerJS library not found");
-        }
-
-        return new Promise((resolve, reject) => {
-            const peer = new window.Peer(id, { debug: 2 });
-            peer.on('open', (id) => {
-                resolve({ peer, id });
-            });
-            peer.on('error', (err) => {
-                if (err.type === 'unavailable-id') {
-                    reject(new Error(`ID "${id}" is already taken. Please try again.`));
-                } else {
-                    reject(err);
-                }
-            });
-        });
-    }
-
-    async initHost(hostId = null) {
-        if (this.peer && !this.peer.destroyed) this.peer.destroy();
-        
-        const idToUse = hostId || Math.floor(100000 + Math.random() * 900000).toString();
-        const { peer, id } = await this._createPeer(idToUse);
-        this.peer = peer;
-
-        this.peer.on('connection', (conn) => {
-            this.conn = conn;
-            this.setupConnection();
-        });
-        return id;
-    }
-
-    async initJoiner(hostId) {
-        if (this.peer && !this.peer.destroyed) this.peer.destroy();
-
-        // Joiner uses a server-assigned ID by passing undefined
-        const { peer } = await this._createPeer(undefined);
-        this.peer = peer;
-
-        this.conn = this.peer.connect(hostId);
-        this.setupConnection();
-    }
-
-    setupConnection() {
-        this.conn.on('open', () => {
-            console.log("Signaling Channel Open");
-            if (this.onConnected) this.onConnected();
-        });
-        this.conn.on('data', (data) => {
-            if (this.onMessage) this.onMessage(data);
-        });
-    }
-
-    send(data) {
-        if (this.conn && this.conn.open) this.conn.send(data);
-    }
-}
+// --- Reconnection State ---
+const connectedPeers = new Map(); // peerId -> { name, status }
+let connectionRole = null; // 'host' or 'joiner'
+let targetPeerId = null;   // Host ID
+let isIntentionalDisconnect = false;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 const signaling = new SignalingChannel();
 
@@ -162,30 +108,14 @@ async function copyToClipboard(id) {
     }
 }
 
-function addMessage(text, type, senderName) {
-    const container = document.getElementById('messages');
-    
-    const wrapper = document.createElement('div');
-    wrapper.className = `message-wrapper ${type}`;
-
-    const nameLabel = document.createElement('div');
-    nameLabel.className = 'message-name';
-    nameLabel.textContent = senderName;
-
-    const bubble = document.createElement('div');
-    bubble.className = `message ${type}`;
-    bubble.textContent = text;
-
-    wrapper.appendChild(nameLabel);
-    wrapper.appendChild(bubble);
-    container.appendChild(wrapper);
-    container.scrollTop = container.scrollHeight;
-}
-
 function renderPeerList(role) {
     const peers = getPeers();
     const peerListContainer = document.getElementById('recent-peers-list');
     if (!peerListContainer) return;
+
+    // Get filter
+    const searchInput = document.getElementById('peer-search-input');
+    const filter = searchInput ? searchInput.value.toLowerCase() : '';
 
     peerListContainer.innerHTML = '<h5>Recent Peers</h5>';
     if (Object.keys(peers).length === 0) {
@@ -193,18 +123,53 @@ function renderPeerList(role) {
         return;
     }
 
-    Object.entries(peers).forEach(([guid, peer]) => {
+    // Helper to check if a guid is connected
+    const isConnected = (guid) => {
+        for (const [peerId, info] of connectedPeers.entries()) {
+            if (info.guid === guid && (info.status === 'connected' || info.status === 'datachannelopen')) {
+                return peerId;
+            }
+        }
+        return null;
+    };
+
+    const filteredPeers = Object.entries(peers).filter(([guid, peer]) => 
+        peer.name.toLowerCase().includes(filter)
+    );
+
+    if (filteredPeers.length === 0) {
+        peerListContainer.innerHTML += '<p>No peers match your search.</p>';
+        return;
+    }
+
+    filteredPeers.forEach(([guid, peer]) => {
         const item = document.createElement('div');
         item.className = 'peer-item';
 
-        const buttonHtml = role === 'host'
-            ? `<button class="host-user-btn" data-guid="${guid}">Host</button>`
-            : `<button class="join-user-btn" data-guid="${guid}">Join</button>`;
+        const connectedPeerId = isConnected(guid);
+        let actionBtn = '';
+
+        if (connectedPeerId) {
+            actionBtn = `<button class="disconnect-peer-btn" data-peer-id="${connectedPeerId}">Disconnect</button>`;
+        } else {
+            actionBtn = role === 'host'
+                ? `<button class="host-user-btn" data-guid="${guid}">Host</button>`
+                : `<button class="join-user-btn" data-guid="${guid}">Join</button>`;
+        }
+
+        let lastSeenText = '';
+        if (peer.lastSeen) {
+            const date = new Date(peer.lastSeen);
+            lastSeenText = date.toLocaleString();
+        }
 
         item.innerHTML = `
-            <span class="peer-name">${peer.name}</span>
+            <div style="display: flex; flex-direction: column;">
+                <span class="peer-name">${peer.name}</span>
+                <span style="font-size: 0.75rem; opacity: 0.7;">${lastSeenText}</span>
+            </div>
             <div class="peer-item-actions">
-                ${buttonHtml}
+                ${actionBtn}
                 <button class="remove-peer-btn" data-guid="${guid}" title="Remove Peer">&times;</button>
             </div>
         `;
@@ -215,48 +180,76 @@ function renderPeerList(role) {
 // --- Centralized Connection Logic ---
 async function startHostingProcess(hostId) {
     try {
+        isIntentionalDisconnect = false;
+        signaling.clearBlockedPeers();
+        connectionRole = 'host';
+
+        // Attempt to restore a previous session ID if we aren't using a specific GUID
+        let idToUse = hostId;
+        if (!idToUse) {
+            idToUse = localStorage.getItem('pwa_host_session_id');
+        }
+
         // 1. Start PeerJS Host with a specific ID or a random one
-        const id = await signaling.initHost(hostId);
+        const id = await signaling.initHost(idToUse);
         
         // Update UI to show the correct ID
+        document.getElementById('host-id-display').textContent = id;
+        targetPeerId = id;
+
+        const shareInfo = document.getElementById('host-share-info');
         if (hostId) {
-            document.getElementById('host-id-display').textContent = `Hosting on My ID...`;
+            if (shareInfo) shareInfo.classList.add('hidden');
         } else {
-            document.getElementById('host-id-display').textContent = id;
+            if (shareInfo) shareInfo.classList.remove('hidden');
+        }
+
+        // Save the session ID if we aren't using a specific GUID
+        if (!hostId) {
+            localStorage.setItem('pwa_host_session_id', id);
         }
 
         // 2. Wait for Joiner to connect via PeerJS, then send Native Offer
-        signaling.onConnected = async () => {
-            console.log("Joiner connected to signaling. Generating Native Offer...");
-            const offer = await peerManager.createOffer();
-            signaling.send({ type: 'offer', sdp: offer });
+        signaling.onConnected = async (peerId) => {
+            console.log(`Joiner ${peerId} connected to signaling. Generating Native Offer...`);
+            const offer = await peerManager.createOffer(peerId);
+            signaling.send({ type: 'offer', sdp: offer }, peerId);
         };
 
         // 3. Wait for Answer back via PeerJS to complete the connection
-        signaling.onMessage = async (data) => {
+        signaling.onMessage = async (data, peerId) => {
             if (data.type === 'answer') {
-                console.log("Received Answer via signaling. Connecting...");
-                await peerManager.acceptAnswer(data.sdp);
+                console.log(`Received Answer from ${peerId} via signaling. Connecting...`);
+                await peerManager.acceptAnswer(data.sdp, peerId);
             }
         };
     } catch (err) {
         console.error(err);
         alert("Signaling Error: " + err.message);
+        // If the error might be due to a stale ID, clear it so the user can try again
+        if (!hostId) {
+            localStorage.removeItem('pwa_host_session_id');
+        }
     }
 }
 
 async function startJoiningProcess(hostId) {
     if (!hostId) return alert("Please provide a Host ID.");
     try {
+        isIntentionalDisconnect = false;
+        signaling.unblockPeer(hostId);
+        connectionRole = 'joiner';
+        targetPeerId = hostId;
+
         // 1. Connect to Host via PeerJS
-        await signaling.initJoiner(hostId);
+        await signaling.initJoiner(hostId, { metadata: { manual: true } });
 
         // 2. Wait for Native WebRTC Offer to be sent over the PeerJS channel
-        signaling.onMessage = async (data) => {
+        signaling.onMessage = async (data, peerId) => {
             if (data.type === 'offer') {
                 console.log("Received Offer via signaling. Sending Answer...");
-                const answer = await peerManager.createAnswer(data.sdp);
-                signaling.send({ type: 'answer', sdp: answer });
+                const answer = await peerManager.createAnswer(data.sdp, peerId);
+                signaling.send({ type: 'answer', sdp: answer }, peerId);
             }
         };
     } catch (err) {
@@ -265,26 +258,77 @@ async function startJoiningProcess(hostId) {
     }
 }
 
+function attemptAutoReconnect() {
+    if (connectionRole === 'joiner' && targetPeerId) {
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            const delay = 2000 * (reconnectAttempts + 1);
+            toastManager.show(`Connection lost. Reconnecting in ${delay/1000}s...`, 'info');
+            
+            reconnectTimer = setTimeout(() => {
+                reconnectAttempts++;
+                console.log(`Reconnecting attempt ${reconnectAttempts} to ${targetPeerId}`);
+                startJoiningProcess(targetPeerId);
+            }, delay);
+        } else {
+            toastManager.show('Reconnection failed. Please try manually.', 'error');
+        }
+    } else if (connectionRole === 'host') {
+        toastManager.show('Peer disconnected. Waiting for reconnection...', 'info');
+    }
+}
+
 // --- PeerManager Callbacks ---
-peerManager.onMessage((data) => {
+peerManager.onMessage((data, peerId) => {
     // Handle incoming data (chat or game state)
+    if (data.type === 'disconnect-intent') {
+        console.log(`Received disconnect intent from ${peerId}`);
+        signaling.blockPeer(peerId);
+        return;
+    }
     if (data.type === 'chat') {
-        addMessage(data.content, 'remote', currentRemoteName);
+        chatManager.handleIncomingMessage(data.content, currentRemoteName);
     } else if (data.type === 'identity') {
         currentRemoteName = data.name;
         savePeer(data.guid, data.name);
+        
+        // Map GUID to PeerID for UI status
+        if (connectedPeers.has(peerId)) {
+            connectedPeers.get(peerId).guid = data.guid;
+        }
+        if (connectionRole) renderPeerList(connectionRole);
         console.log('Received data:', data);
     }
 });
 
-peerManager.onStatusChange((status) => {
-    console.log('Connection status:', status);
-    const btnOpenChat = document.getElementById('btn-open-chat');
-    if (status === 'connected') {
-        hide('peer-setup');
-        show('connected-status');
-        if (btnOpenChat) btnOpenChat.disabled = false;
+peerManager.onStatusChange((status, peerId) => {
+    console.log(`Connection status for ${peerId}:`, status);
+    
+    // Update internal map
+    if (!connectedPeers.has(peerId)) {
+        connectedPeers.set(peerId, { name: 'Connecting...', status: status });
     }
+    const peerInfo = connectedPeers.get(peerId);
+    peerInfo.status = status;
+
+    if (status === 'connected') {
+        chatManager.enable(true);
+        toastManager.show('Connected to peer!', 'success');
+        reconnectAttempts = 0;
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+    } else if (status === 'disconnected' || status === 'closed' || status === 'failed') {
+        connectedPeers.delete(peerId);
+        console.log(`Peer ${peerId} connection lost`);
+        
+        if (connectedPeers.size === 0) {
+            show('peer-setup');
+            chatManager.enable(false);
+        }
+        
+        if (!isIntentionalDisconnect && !signaling.isPeerBlocked(peerId)) {
+            attemptAutoReconnect();
+        }
+    }
+    if (connectionRole) renderPeerList(connectionRole);
 });
 
 // --- Event Listeners ---
@@ -321,6 +365,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Peer Info Modal Logic
+    const peerInfoModal = document.getElementById('peer-info-modal');
+    const btnPeerInfo = document.getElementById('btn-peer-info');
+    const closePeerInfoModalBtn = document.getElementById('close-peer-info-modal');
+
+    if (btnPeerInfo) {
+        btnPeerInfo.addEventListener('click', () => {
+            peerInfoModal.classList.remove('hidden');
+        });
+    }
+
+    if (closePeerInfoModalBtn) {
+        closePeerInfoModalBtn.addEventListener('click', () => {
+            peerInfoModal.classList.add('hidden');
+        });
+    }
+
     // Chat Modal Logic
     const chatModal = document.getElementById('chat-modal');
     const btnOpenChat = document.getElementById('btn-open-chat');
@@ -330,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnOpenChat.addEventListener('click', () => {
             closeNav();
             chatModal.classList.remove('hidden');
+            chatManager.resetUnread();
         });
     }
 
@@ -365,6 +427,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function selectRole(role) {
         const recentPeersList = document.getElementById('recent-peers-list');
+        const peerSearchInput = document.getElementById('peer-search-input');
+        
         if (role === 'host') {
             btnSelectHost.classList.add('selected');
             btnSelectJoiner.classList.remove('selected');
@@ -372,6 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
             panelJoin.classList.add('hidden');
             renderPeerList('host');
             recentPeersList.classList.remove('hidden');
+            if (peerSearchInput) peerSearchInput.classList.remove('hidden');
         } else {
             btnSelectHost.classList.remove('selected');
             btnSelectJoiner.classList.add('selected');
@@ -379,12 +444,23 @@ document.addEventListener('DOMContentLoaded', () => {
             panelJoin.classList.remove('hidden');
             renderPeerList('joiner');
             recentPeersList.classList.remove('hidden');
+            if (peerSearchInput) peerSearchInput.classList.remove('hidden');
         }
     }
 
     if (btnSelectHost && btnSelectJoiner) {
         btnSelectHost.addEventListener('click', () => selectRole('host'));
         btnSelectJoiner.addEventListener('click', () => selectRole('joiner'));
+    }
+
+    // Peer Search Listener
+    const peerSearchInput = document.getElementById('peer-search-input');
+    if (peerSearchInput) {
+        peerSearchInput.addEventListener('input', () => {
+            const btnSelectHost = document.getElementById('select-host');
+            const role = btnSelectHost.classList.contains('selected') ? 'host' : 'joiner';
+            renderPeerList(role);
+        });
     }
 
     // --- HOST FLOW ---
@@ -397,7 +473,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Disconnect Button
     const btnDisconnect = document.getElementById('btn-disconnect');
     if (btnDisconnect) {
-        btnDisconnect.addEventListener('click', () => location.reload());
+        btnDisconnect.addEventListener('click', () => {
+            isIntentionalDisconnect = true;
+            // Clear the persisted session ID so we don't get stuck with it if we want a new one later
+            localStorage.removeItem('pwa_host_session_id');
+            location.reload();
+        });
     }
 
     // --- JOINER FLOW ---
@@ -416,7 +497,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (peerListContainer) {
         peerListContainer.addEventListener('click', async (e) => {
             const guid = e.target.dataset.guid;
-            if (!guid) return;
+            const peerId = e.target.dataset.peerId;
+            if (!guid && !peerId) return;
 
             if (e.target.classList.contains('host-user-btn')) {
                 // Update UI to show connecting state
@@ -428,26 +510,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Joiner connecting to the selected peer's GUID.
                 e.target.disabled = true;
                 startJoiningProcess(guid);
+            } else if (e.target.classList.contains('disconnect-peer-btn')) {
+                if (peerId) {
+                    signaling.blockPeer(peerId);
+                    peerManager.send({ type: 'disconnect-intent' }, peerId);
+                    setTimeout(() => peerManager.disconnect(peerId), 100);
+                }
             } else if (e.target.classList.contains('remove-peer-btn')) {
                 if (confirm(`Are you sure you want to remove this peer?`)) {
                     removePeer(guid);
                     e.target.closest('.peer-item').remove(); // Remove from UI immediately
                 }
             }
-        });
-    }
-
-    // --- CHAT ---
-    const btnSend = document.getElementById('btn-send');
-    const inputMsg = document.getElementById('msg-input');
-
-    if (btnSend) {
-        btnSend.addEventListener('click', () => {
-            const text = inputMsg.value;
-            if (!text) return;
-            peerManager.send({ type: 'chat', content: text });
-            addMessage(text, 'local', getIdentity().name);
-            inputMsg.value = '';
         });
     }
 });

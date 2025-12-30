@@ -6,6 +6,9 @@ const ASSETS_TO_CACHE = [
     './css/peer.css',
     './js/app.js',
     './js/peer.js',
+    './js/ChatManager.js',
+    './js/SignalingChannel.js',
+    './js/ToastManager.js',
     './js/peerjs.min.js',
     './manifest.json'
 ];
