@@ -241,3 +241,46 @@ button#btn-host-session:hover {
     .host-user-btn { background-color: #1565c0; color: #fff; }
     .join-user-btn { background-color: #2e7d32; color: #fff; }
 }
+
+/* Manual Dark Mode Support */
+body[data-theme="dark"] .modal-content {
+    background-color: #1a1a1a;
+    border-color: #333;
+    color: #e0e0e0;
+}
+
+body[data-theme="dark"] .close-modal { color: #888; }
+body[data-theme="dark"] .close-modal:hover { color: #fff; }
+
+body[data-theme="dark"] .role-selector { background: #2d2d2d; }
+body[data-theme="dark"] .role-btn { color: #aaa; }
+body[data-theme="dark"] .role-btn.selected { background: #404040; color: #fff; }
+
+body[data-theme="dark"] .step-box {
+    background: #252525;
+    border-color: #333;
+}
+
+body[data-theme="dark"] .step-box h4 { color: #fff; }
+
+body[data-theme="dark"] .code-display {
+    background: #1a1a1a;
+    border-color: #444;
+    color: #fff;
+}
+
+body[data-theme="dark"] .sdp-box {
+    background: #1a1a1a;
+    border-color: #444;
+    color: #fff;
+}
+
+body[data-theme="dark"] .peer-item {
+    background: #252525;
+    border-color: #333;
+}
+
+body[data-theme="dark"] .peer-name { color: #fff; }
+
+body[data-theme="dark"] .host-user-btn { background-color: #1565c0; color: #fff; }
+body[data-theme="dark"] .join-user-btn { background-color: #2e7d32; color: #fff; }
