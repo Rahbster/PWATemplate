@@ -73,7 +73,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnOpenPeerModal) {
         btnOpenPeerModal.addEventListener('click', () => {
             closeNav();
-            showPeerConnectionModal(toastManager, chatManager);
+            showPeerConnectionModal(toastManager, {
+                appPrefix: 'pwa',
+                peerPrefix: 'pwa-',
+                onDataReceived: (data, peerName) => {
+                    if (data.type === 'chat') {
+                        chatManager.handleIncomingMessage(data.content, peerName);
+                    }
+                },
+                onConnectionChange: (connected) => {
+                    chatManager.enable(connected);
+                }
+            });
         });
     }
 

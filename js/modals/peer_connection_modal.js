@@ -1,35 +1,47 @@
 import * as peerService from '../peer-service.js';
 
-// --- Identity & Peer History ---
-function getIdentity() {
-    let guid = localStorage.getItem('pwa_user_guid');
-    if (!guid) {
-        guid = crypto.randomUUID();
-        localStorage.setItem('pwa_user_guid', guid);
+export function showPeerConnectionModal(toastManager, config) {
+    // Dynamically load the CSS for the modal
+    if (!document.getElementById('peer-modal-css')) {
+        const link = document.createElement('link');
+        link.id = 'peer-modal-css';
+        link.rel = 'stylesheet';
+        link.href = 'css/peer_connection_modal.css';
+        document.head.appendChild(link);
     }
-    const name = localStorage.getItem('pwa_display_name') || 'Anonymous';
-    return { guid, name };
-}
 
-function getPeers() {
-    return JSON.parse(localStorage.getItem('pwa_peers') || '{}');
-}
-
-function savePeer(guid, name) {
-    if (getIdentity().guid === guid) return; // Don't save self
-    let peers = getPeers();
-    peers[guid] = { name, lastSeen: Date.now() };
-    localStorage.setItem('pwa_peers', JSON.stringify(peers));
-}
-
-function removePeer(guid) {
-    let peers = getPeers();
-    delete peers[guid];
-    localStorage.setItem('pwa_peers', JSON.stringify(peers));
-}
-
-export function showPeerConnectionModal(toastManager, chatManager) {
     if (document.getElementById('peer-modal')) return;
+
+    const appPrefix = config.appPrefix || 'pwa';
+    const peerPrefix = config.peerPrefix || 'pwa-';
+
+    // --- Identity & Peer History ---
+    function getIdentity() {
+        let guid = localStorage.getItem(`${appPrefix}_user_guid`);
+        if (!guid) {
+            guid = crypto.randomUUID();
+            localStorage.setItem(`${appPrefix}_user_guid`, guid);
+        }
+        const name = localStorage.getItem(`${appPrefix}_display_name`) || 'Anonymous';
+        return { guid, name };
+    }
+
+    function getPeers() {
+        return JSON.parse(localStorage.getItem(`${appPrefix}_peers`) || '{}');
+    }
+
+    function savePeer(guid, name) {
+        if (getIdentity().guid === guid) return; // Don't save self
+        let peers = getPeers();
+        peers[guid] = { name, lastSeen: Date.now() };
+        localStorage.setItem(`${appPrefix}_peers`, JSON.stringify(peers));
+    }
+
+    function removePeer(guid) {
+        let peers = getPeers();
+        delete peers[guid];
+        localStorage.setItem(`${appPrefix}_peers`, JSON.stringify(peers));
+    }
 
     const modalHTML = `
         <div id="peer-modal" class="modal">
@@ -158,25 +170,25 @@ export function showPeerConnectionModal(toastManager, chatManager) {
 
     function updateConnectionStatus(count) {
         isConnected = count > 0;
-        chatManager.enable(isConnected);
+        if (config.onConnectionChange) config.onConnectionChange(isConnected);
         if (connectionRole) renderPeerList(connectionRole);
     }
 
     function handleDataReceived(data) {
-        if (data.type === 'chat') {
-            chatManager.handleIncomingMessage(data.content, currentRemoteName);
-        } else if (data.type === 'identity') {
+        if (data.type === 'identity') {
             currentRemoteName = data.name;
             savePeer(data.guid, data.name);
             renderPeerList(connectionRole);
             toastManager.show(`Connected with ${data.name}`, 'info');
+        } else {
+            if (config.onDataReceived) config.onDataReceived(data, currentRemoteName);
         }
     }
 
     function handleConnectionEstablished() {
         toastManager.show('Connected to peer!', 'success');
         isConnected = true;
-        chatManager.enable(true);
+        if (config.onConnectionChange) config.onConnectionChange(true);
         const identity = getIdentity();
         peerService.sendData({ type: 'identity', guid: identity.guid, name: identity.name });
         destroyModal();
@@ -234,5 +246,5 @@ export function showPeerConnectionModal(toastManager, chatManager) {
 
     // Initialize
     selectRole('host');
-    peerService.initialize('pwa-');
+    peerService.initialize(peerPrefix);
 }
