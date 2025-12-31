@@ -282,3 +282,11 @@
     margin-top: 1rem;
     margin-bottom: 0.5rem;
 }
+
+/* Reset button styles for the sidenav close button */
+#close-sidenav-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
