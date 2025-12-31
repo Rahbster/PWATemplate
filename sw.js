@@ -2,10 +2,13 @@ const CACHE_NAME = 'pwa-template-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
+    './css/variables.css',
     './css/styles.css',
     './css/peer.css',
     './js/app.js',
     './js/peer.js',
+    './js/modals/peer_connection_modal.js',
+    './js/peer-service.js',
     './js/ChatManager.js',
     './js/SignalingChannel.js',
     './js/ToastManager.js',

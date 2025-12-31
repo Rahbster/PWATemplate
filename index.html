@@ -8,8 +8,22 @@
     <meta name="theme-color" content="#ffffff">
     
     <!-- Styles -->
+    <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/peer.css">
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
 </head>
 <body>
     <div id="app">
@@ -54,53 +68,6 @@
             </section>
         </main>
 
-        <!-- Peer Connection Modal -->
-        <div id="peer-modal" class="modal hidden">
-            <div class="modal-content">
-                <span id="close-peer-modal" class="close-modal">&times;</span>
-                <h2>Peer Connection <button id="btn-peer-info" class="info-icon" title="How it works">ℹ️</button></h2>
-                <div class="peer-controls">
-                    
-                    <!-- Role Selector -->
-                    <div id="peer-setup">
-                        <div class="role-selector">
-                            <button id="select-host" class="role-btn">Host</button>
-                            <button id="select-joiner" class="role-btn">Joiner</button>
-                        </div>
-
-                        <!-- HOST PANEL -->
-                        <div id="panel-host" class="role-panel hidden">
-                            <div class="step-box">
-                                <h4>Host Session</h4>
-                                <button id="btn-host-session">Start Hosting</button>
-                                <div id="host-share-info" class="hidden">
-                                    <p>Share this ID with the Joiner:</p>
-                                    <div id="host-id-display" class="code-display">------</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- JOINER PANEL -->
-                        <div id="panel-join" class="role-panel hidden">
-                            <div class="step-box">
-                                <h4>Join Session</h4>
-                                <p>Enter 6-Digit Host ID:</p>
-                                <input type="text" id="joiner-id-input" class="sdp-box" placeholder="Enter Host ID" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 4px;">
-                            </div>
-                        </div>
-
-                        <!-- Recent Peers Search -->
-                        <input type="text" id="peer-search-input" class="sdp-box hidden" placeholder="Search peers..." style="margin-bottom: 0.5rem;">
-
-                        <!-- Recent Peers List -->
-                        <div id="recent-peers-list" class="step-box hidden">
-                            <!-- This will be populated by app.js -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Chat Modal -->
         <div id="chat-modal" class="modal hidden">
             <div class="modal-content">
@@ -112,24 +79,6 @@
                         <input type="text" id="msg-input" placeholder="Type a message...">
                         <button id="btn-send">Send</button>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Peer Info Modal -->
-        <div id="peer-info-modal" class="modal hidden">
-            <div class="modal-content">
-                <span id="close-peer-info-modal" class="close-modal">&times;</span>
-                <h2>How it Works</h2>
-                <div class="info-content">
-                    <h3>Host</h3>
-                    <p>The Host initiates the session. They generate a unique ID (or use their own) which must be shared with the Joiner.</p>
-                    <h3>Joiner</h3>
-                    <p>The Joiner connects to a Host by entering the Host's 6-digit ID.</p>
-                    <h3>Direct Connection</h3>
-                    <p>Once connected, data is exchanged directly between devices (Peer-to-Peer) without going through a central server.</p>
-                    <h3>Recent Peers</h3>
-                    <p>When a connection is established, the Host and Joiner exchange their display names and a unique internal ID. This information is saved to your "Recent Peers" list, allowing you to easily reconnect or host the same person again without re-entering codes.</p>
                 </div>
             </div>
         </div>
